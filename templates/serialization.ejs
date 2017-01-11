@@ -1,0 +1,65 @@
+
+
+/*
+------------------------------------------
+CUSTOM MODELS FOR SERIALIZATION
+------------------------------------------
+*/
+
+export module Models {
+<%  Object.keys(Models).forEach((modelName) => { -%>
+    export class <%= capitalize(modelName) %> {
+<%  let definition = Models[modelName];
+    Object.keys(definition).forEach((propName) => { 
+        let value = definition[propName];
+        let type = '';
+        if (Array.isArray(value)) {
+            type = value[0];
+        } else {
+            type = value;
+        } -%>
+        <%= propName %>: <%= TYPES[type] %>        
+<%  }); -%>
+    }
+<% }); -%>
+}
+
+/*
+------------------------------------------
+ENUM OF MODEL DATA TYPES FOR SERIALIZATION
+------------------------------------------
+*/
+
+export enum ModelIdentifiers {
+<%  Object.keys(Models).forEach((modelName) => { -%>
+    <%= capitalize(modelName) %>,
+<% }); -%>
+}
+
+/*
+------------------------------------------
+CUSTOM SERIALIZATION MODULES
+------------------------------------------
+*/
+
+export module Serialization {
+    export let Demarshaller = new StructDemarshaller();
+
+<%  Object.keys(Models).forEach((modelName) => { -%>
+    export let <%= capitalize(modelName) %> = new Struct<Models.<%= capitalize(modelName) %>>()
+<%  let definition = Models[modelName];
+    Object.keys(definition).forEach((propName) => { 
+        let value = definition[propName];
+        let type = '';
+        if (Array.isArray(value)) {
+            type = value[0]; -%>
+        .<%= capitalizeType(type) %>('<%= propName %>', <%= value[1] %>)
+<%      } else {
+            type = value; -%>
+        .<%= capitalizeType(type) %>('<%= propName %>')
+<%      } -%>
+<%  }); -%>
+        .Build();
+    Demarshaller.Register(ModelIdentifiers.<%= capitalize(modelName) %>, <%= capitalize(modelName) %>); 
+<% }); -%>
+}

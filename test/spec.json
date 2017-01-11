@@ -1,0 +1,18 @@
+{
+    "login": {
+        "username": ["string", 10],
+        "password": ["string", 10],
+        "uniqueId": "uint8"
+    },
+    "position": {
+        "id": "uint32",
+        "x": "uint32",
+        "y": "uint32",
+        "angle": "uint8",
+        "velocity": "int16"
+    },
+    "character": {
+        "name": ["string", 15],
+        "level": "uint8"
+    }
+}
