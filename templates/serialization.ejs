@@ -2,6 +2,18 @@
 
 /*
 ------------------------------------------
+ENUM OF MODEL DATA TYPES FOR SERIALIZATION
+------------------------------------------
+*/
+
+enum ModelIdentifiers {
+<%  Object.keys(Models).forEach((modelName) => { -%>
+    <%= capitalize(modelName) %>,
+<% }); -%>
+}
+
+/*
+------------------------------------------
 CUSTOM MODELS FOR SERIALIZATION
 ------------------------------------------
 */
@@ -26,40 +38,59 @@ export module Models {
 
 /*
 ------------------------------------------
-ENUM OF MODEL DATA TYPES FOR SERIALIZATION
-------------------------------------------
-*/
-
-export enum ModelIdentifiers {
-<%  Object.keys(Models).forEach((modelName) => { -%>
-    <%= capitalize(modelName) %>,
-<% }); -%>
-}
-
-/*
-------------------------------------------
 CUSTOM SERIALIZATION MODULES
 ------------------------------------------
 */
 
 export module Serialization {
-    export let Demarshaller = new StructDemarshaller();
+    let Demarshaller = new Core.StructDemarshaller();
 
+    export let Demarshall = function (buffer: Buffer) {
+        let length = Demarshaller.GetTransmissionSize(buffer);
+        let trimmed: Buffer;
+        if (buffer.length === length) {
+            trimmed = buffer;
+        } else {
+            trimmed = Buffer.from(buffer, 0, length);
+        }
+
+        let type = Demarshaller.GetIdentifier(buffer);
+        let object = Demarshaller.Demarshall(buffer);
+
+        switch (type) {
 <%  Object.keys(Models).forEach((modelName) => { -%>
-    export let <%= capitalize(modelName) %> = new Struct<Models.<%= capitalize(modelName) %>>()
-<%  let definition = Models[modelName];
-    Object.keys(definition).forEach((propName) => { 
-        let value = definition[propName];
-        let type = '';
-        if (Array.isArray(value)) {
-            type = value[0]; -%>
-        .<%= capitalizeType(type) %>('<%= propName %>', <%= value[1] %>)
-<%      } else {
-            type = value; -%>
-        .<%= capitalizeType(type) %>('<%= propName %>')
-<%      } -%>
-<%  }); -%>
-        .Build();
-    Demarshaller.Register(ModelIdentifiers.<%= capitalize(modelName) %>, <%= capitalize(modelName) %>); 
+            case ModelIdentifiers.<%= capitalize(modelName) %>: {
+                let castedObject: Models.<%= capitalize(modelName) %> = object as Models.<%= capitalize(modelName) %>
+                Handlers.<%= capitalize(modelName) %>(castedObject);
+                break;
+            }
 <% }); -%>
+        }
+    }
+
+    export let Handlers = {
+<%  Object.keys(Models).forEach((modelName) => { -%>
+        <%= capitalize(modelName) %>: function (<%= modelName %>: Models.<%= capitalize(modelName) %>): void { throw "No handler specified for <%= capitalize(modelName) %>" },
+<% }); -%>
+    }
+
+    export module Custom {
+<%  Object.keys(Models).forEach((modelName) => { -%>
+        export let <%= capitalize(modelName) %> = new Core.Struct<Models.<%= capitalize(modelName) %>>(ModelIdentifiers.<%= capitalize(modelName) %>)
+<%      let definition = Models[modelName];
+        Object.keys(definition).forEach((propName) => { 
+            let value = definition[propName];
+            let type = '';
+            if (Array.isArray(value)) {
+                type = value[0]; -%>
+            .<%= capitalizeType(type) %>('<%= propName %>', <%= value[1] %>)
+<%          } else {
+            type = value; -%>
+            .<%= capitalizeType(type) %>('<%= propName %>')
+<%          } -%>
+<%      }); -%>
+            .Build();
+        Demarshaller.Register(ModelIdentifiers.<%= capitalize(modelName) %>, <%= capitalize(modelName) %>); 
+<% }); -%>
+    }
 }
